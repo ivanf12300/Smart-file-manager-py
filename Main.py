@@ -76,7 +76,7 @@ def ejecutar_comando(comando):
     elif "abrir" in comando or "ejecutar" in comando:
         objetivo = comando.replace("abrir", "").replace("ejecutar", "").strip()
         if objetivo:
-            abrir_o_ejecutar(objetivo.replace(" ","_"))
+            abrir_o_ejecutar(objetivo.replace(" punto ","."))
         else:
             responder("Especifica el archivo que deseas abrir o programa ejecutar.")
     elif "listar archivos" in comando:
@@ -97,7 +97,21 @@ def ejecutar_comando(comando):
     elif "bloquear equipo" in comando:
         responder("Bloqueando equipo.")
         pyautogui.hotkey('win', 'l')
-
+    elif "cerrar" in comando.lower():
+            responder("Cerrando.")
+            pyautogui.hotkey('alt', 'f4')
+    elif "buscar" in comando.lower():
+            responder("Que buscamos")
+            pyautogui.hotkey('win')
+            for i in comando.replace("buscar ",""):
+                pyautogui.write(i,interval=.02)
+    elif "escribir" in comando.lower():
+            responder("Escribiendo..")
+            if not "enter" in comando: # falta implementar
+                comando = comando.replace("escribir ","")
+                for i in comando:
+                    pyautogui.write(i,interval=.02)
+            
 if __name__ == "__main__":
     responder("Iniciando.")
     while True:
@@ -108,4 +122,5 @@ if __name__ == "__main__":
         if comando:
             ejecutar_comando(comando)
 
-### Comandos: Crear carpeta, Crear archivo, Abrir, Listar archivos, Limpiar carpeta, Bloquear equipo
+# Comandos: Crear carpeta, Crear archivo, Abrir, Listar archivos, Limpiar carpeta,
+# Bloquear equipo, Cerrar, Buscar, Escribir
