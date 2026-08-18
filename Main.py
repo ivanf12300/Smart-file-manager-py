@@ -4,8 +4,11 @@ import shutil
 import pyautogui
 import pyttsx3
 import subprocess
+import noisereduce as nr
+import numpy as np
+import pyperclip as pp
 
-TARGET_DIR = r"Proyecto\TestFolder" # Reemplaza con la ruta, no hay comando para abrir carpetas aún
+TARGET_DIR = r"C:\Users\leand\OneDrive\Escritorio\vsc\Proyecto\TestFolder" # Reemplaza con la ruta, no hay comando para abrir carpetas aún
 
 engine = pyttsx3.init()
 
@@ -14,23 +17,34 @@ def responder(texto):
     engine.say(texto)
     engine.runAndWait()
 
-def escuchar_comando():
+def noiseReducedCommand():
     recognizer = sr.Recognizer()
+    
+    recognizer.dynamic_energy_threshold = True
+    recognizer.pause_threshold = 0.8
+
     with sr.Microphone() as source:
-        print("Escuchando...")
         recognizer.adjust_for_ambient_noise(source, duration=1)
-        audio = recognizer.listen(source)
+        print("?")
+        audio_data = recognizer.listen(source)
+
     try:
-        texto = recognizer.recognize_google(audio, language="es-ES")  # type: ignore
+        raw_data = audio_data.get_raw_data()
+        audio_np = np.frombuffer(raw_data, dtype=np.int16)
+        audio_limpio_np = nr.reduce_noise(y=audio_np, sr=audio_data.sample_rate, prop_decrease=0.75)
+        audio_limpio_bytes = audio_limpio_np.tobytes()
+        audio_procesado = sr.AudioData(audio_limpio_bytes, audio_data.sample_rate, audio_data.sample_width)
+        texto = recognizer.recognize_google(audio_procesado, language="es-ES") #type: ignore
         print(f"{texto}")
         return texto.lower()
+
     except sr.UnknownValueError:
-        responder("No entendi")
+        responder("No entendí lo que dijiste o hubo demasiado ruido.")
         return ""
     except sr.RequestError:
         responder("Error al conectar con el servicio de voz.")
         return ""
-
+    
 def crear_archivo(nombre_archivo, contenido=""):
     if not os.path.exists(TARGET_DIR):
         os.makedirs(TARGET_DIR)
@@ -68,6 +82,8 @@ def ejecutar_comando(comando):
         os.makedirs(ruta, exist_ok=True)
         responder(f"Carpeta {nombre} creada con éxito.")
     elif "crear archivo" in comando:
+        if "archivos" in comando:
+            comando = comando.replace("archivos","archivo")
         nombre_archivo = comando.replace("crear archivo", "").strip()
         if nombre_archivo:
             crear_archivo(nombre_archivo.replace(" punto ","."))
@@ -109,13 +125,14 @@ def ejecutar_comando(comando):
             responder("Escribiendo..")
             if not "enter" in comando: # falta implementar
                 comando = comando.replace("escribir ","")
-                for i in comando:
-                    pyautogui.write(i,interval=.02)
+                pp.copy(comando)
+                pyautogui.hotkey("ctrl","v")
+                pyautogui.press("space")
             
 if __name__ == "__main__":
     responder("Iniciando.")
     while True:
-        comando = escuchar_comando()
+        comando = noiseReducedCommand()
         if "salir" in comando or "terminar" in comando:
             responder("Hasta luego.")
             break
